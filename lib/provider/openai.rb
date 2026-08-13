@@ -65,6 +65,12 @@ class OpenaiProvider
     @model
   end
 
+  # Wire format of the messages this provider builds; every OpenAI-compatible
+  # subclass shares it, so sessions move freely between them (see Sessions).
+  def message_shape
+    :openai
+  end
+
   # OpenAI context windows differ by model; 200k is a safe default that covers
   # the o1/o3-mini/gpt-4o family.
   def context_window

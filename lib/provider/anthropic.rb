@@ -58,6 +58,12 @@ class AnthropicProvider
     @model
   end
 
+  # Wire format of the messages this provider builds, so a saved session is only
+  # resumed into a provider that can send it back (see Sessions).
+  def message_shape
+    :anthropic
+  end
+
   # Anthropic's context window varies by model; default to 200k.
   def context_window
     200_000

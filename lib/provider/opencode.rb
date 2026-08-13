@@ -173,6 +173,13 @@ class OpencodeProvider
     "#{@provider_id}/#{@model_id}"
   end
 
+  # The opencode server owns the conversation — it only ever receives the newest
+  # user message — so its sessions can't be rehydrated from our side. Saved
+  # sessions are tagged with this shape and never offered for /resume.
+  def message_shape
+    :opencode
+  end
+
   def run_turn(messages, events)
     ensure_session
 

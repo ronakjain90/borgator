@@ -5,6 +5,7 @@ require 'lipgloss'
 
 require_relative 'checkpoints'
 require_relative 'model'
+require_relative 'sessions'
 require_relative 'preferences'
 require_relative 'prompt_history'
 require_relative 'settings'
@@ -28,6 +29,7 @@ end
 # Elm-architecture TUI: init / update / view.
 class AgentApp
   include Bubbletea::Model
+  include Commands::Resume
   include Commands::Undo
   include Commands::Worker
 
@@ -64,6 +66,9 @@ class AgentApp
     @pending_model_id = nil
     @models_picker_items = []
     @worker_picker_items = []
+    @resume_picker_items = []
+    # This conversation's saved-session id; rotated whenever @messages is reset.
+    @session_id = Sessions.new_id
     @suggest_cursor = 0
     @history = PromptHistory.load
     @history_index = nil
@@ -164,6 +169,7 @@ class AgentApp
       when :permission then update_permission(message)
       when :models_picker then update_models_picker(message)
       when :worker_picker then update_worker_picker(message)
+      when :resume_picker then update_resume_picker(message)
       else update_chat(message)
       end
     else
@@ -179,6 +185,7 @@ class AgentApp
     when :permission then view_permission
     when :models_picker then view_models_picker
     when :worker_picker then view_worker_picker
+    when :resume_picker then view_resume_picker
     else view_chat
     end
   end
@@ -294,6 +301,7 @@ class AgentApp
         @provider = meta.build(prefs[:model])
         Provider.attach_worker(@provider, prefs[:provider])
         @messages = []
+        reset_session!
         @usage = Usage.blank
         @context_tokens = 0
       rescue Settings::MissingApiKeyError
@@ -825,6 +833,7 @@ class AgentApp
       @api_key_input = ''
       @api_key_error = nil
       @messages = []
+      reset_session!
       @usage = Usage.blank
       @context_tokens = 0
       @picker_error = nil
@@ -1643,6 +1652,7 @@ class AgentApp
           end
         end
         @thinking = false
+        persist_session
       when :usage
         Usage.add!(@usage, ev[:usage])
         # Latest prompt size ≈ current context fill for the meter.
@@ -1673,6 +1683,7 @@ class AgentApp
       @log << { kind: :assistant, text: '— interrupted —' }
     end
     @worker_thread = nil
+    persist_session
   end
 
   def visible_log

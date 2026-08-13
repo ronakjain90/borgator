@@ -16,6 +16,7 @@ Key features:
 - **Provider auto-config**: remembers your last provider/model in `~/.config/borgator/preferences.json`, saves named "model sets" switchable via `/models`, and lets workers run on a different (e.g. cheaper) model.
 - **Shell safety**: destructive commands prompt for permission (`y`/`a`/`p`/`n`); read-only `git` commands are auto-allowed. Persist command prefixes to skip future prompts.
   - `--yolo` skips all permission prompts.
+- **Resume**: every completed turn is saved to `~/.borgator/sessions/<project>/<id>.json` (`Sessions`), and `/resume` reopens one. Sessions are scoped to the project directory *and* to the provider's `message_shape` (`:anthropic` / `:openai` / `:opencode`) — the wire formats are not interchangeable.
 - **Undo**: `write_file`/`edit_file` snapshot the prior contents into a per-turn checkpoint (`Checkpoints`), and `/undo` rewinds the newest turn that touched files. Session-scoped and in memory; files changed after the agent wrote them are reported, never overwritten.
 - `/init` can analyze the repo and write an `AGENTS.md`.
 
@@ -32,7 +33,9 @@ lib/
     tools.rb            # built-in tools (read/write/edit/list_files/run_command) + permission gating
     commands.rb         # slash commands /providers /worker /models /undo /init /help
     commands/undo.rb    # the /undo command, mixed into AgentApp
+    commands/resume.rb  # the /resume command + session autosave, mixed into AgentApp
     checkpoints.rb      # per-turn file snapshots behind /undo
+    sessions.rb         # saved conversations behind /resume
     preferences.rb     # persisted provider/model/worker/model sets/allowlist
     settings.rb         # API keys (~/.borgator/settings.json)
     usage.rb            # token-usage normalization + footer meter

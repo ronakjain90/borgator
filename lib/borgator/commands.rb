@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative 'commands/resume'
 require_relative 'commands/undo'
 require_relative 'commands/worker'
 
@@ -9,6 +10,7 @@ module Commands
     { name: '/providers', desc: 'switch provider and model' },
     { name: '/worker',    desc: 'choose which worker model to use' },
     { name: '/models',    desc: 'manage saved model sets' },
+    { name: '/resume',    desc: "reopen one of this project's saved conversations" },
     { name: '/undo',      desc: 'rewind the file changes from the last turn' },
     { name: '/init',      desc: 'read or create AGENTS.md (references CLAUDE.md if present)' },
     { name: '/agents',    desc: 'show multi-agent manager/worker help' },
@@ -31,6 +33,8 @@ module Commands
       app.open_worker_picker
     when '/models'
       app.open_models_picker
+    when '/resume'
+      app.open_resume_picker
     when '/undo'
       app.handle_undo
     when '/init'
