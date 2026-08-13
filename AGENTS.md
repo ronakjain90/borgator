@@ -16,6 +16,7 @@ Key features:
 - **Provider auto-config**: remembers your last provider/model in `~/.config/borgator/preferences.json`, saves named "model sets" switchable via `/models`, and lets workers run on a different (e.g. cheaper) model.
 - **Shell safety**: destructive commands prompt for permission (`y`/`a`/`p`/`n`); read-only `git` commands are auto-allowed. Persist command prefixes to skip future prompts.
   - `--yolo` skips all permission prompts.
+- **Undo**: `write_file`/`edit_file` snapshot the prior contents into a per-turn checkpoint (`Checkpoints`), and `/undo` rewinds the newest turn that touched files. Session-scoped and in memory; files changed after the agent wrote them are reported, never overwritten.
 - `/init` can analyze the repo and write an `AGENTS.md`.
 
 ## 2. Architecture / Components
@@ -29,7 +30,9 @@ lib/
     agents.rb           # multi-agent system prompts + tool set + depth/parallel caps
                         # + the `Delegation` module (delegate dispatch, worker spawn, parallel exec)
     tools.rb            # built-in tools (read/write/edit/list_files/run_command) + permission gating
-    commands.rb         # slash commands /providers /worker /models /init /help
+    commands.rb         # slash commands /providers /worker /models /undo /init /help
+    commands/undo.rb    # the /undo command, mixed into AgentApp
+    checkpoints.rb      # per-turn file snapshots behind /undo
     preferences.rb     # persisted provider/model/worker/model sets/allowlist
     settings.rb         # API keys (~/.borgator/settings.json)
     usage.rb            # token-usage normalization + footer meter
@@ -115,6 +118,7 @@ This repo *is itself* a coding agent — treat changes through the lens of how a
 - The `delegate` tool (and the multi-agent caps `MAX_DEPTH = 2`, `MAX_PARALLEL = 6`) are exposed by the `Delegation` module in `lib/borgator/agents.rb`, which `AnthropicProvider` and `OpenaiProvider` mix in; `OpencodeProvider` does not — do not raise unbounded fan-out without lowering `MAX_PARALLEL`.
 - The `opencode` provider **owns its own edit tools** — it does *not* use `Tools.call`; it reads diffs from the server via `/session/:id/diff` and reports them as `:diff` events for the panel.
 - Provider `build(model_id)` may raise `Settings::MissingApiKeyError` — the TUI routes this to the in-TUI key entry; preserve that contract.
+- File tools must keep snapshotting into `Checkpoints` **inside the path lock** (`with_file_lock`), or `/undo` records a "before" that another concurrent call already replaced. Any new file-mutating tool should record too.
 - `MAX_STEPS = 25` is the safety cap on the tool-loop per turn; long agentic tasks should rely on the manager/worker split, not a single turn. Hitting the cap emits `Agents.step_limit_event` — never end a turn silently, and never record a tool call the loop won't answer (an unanswered `tool_calls`/`tool_use` block 400s the *next* request too).
 - `Usage` meters assume 4 chars/token for rough context-fill estimation when the provider doesn't report usage (important for Ollama/opencode).
 - `.ruby-lsp/` and `.idea/` are git-ignored dev artifacts; don't touch `.claude/settings.local.json` (local sandbox perms, not committed).

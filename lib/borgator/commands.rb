@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative 'commands/undo'
 require_relative 'commands/worker'
 
 # Slash commands available in chat.
@@ -8,6 +9,7 @@ module Commands
     { name: '/providers', desc: 'switch provider and model' },
     { name: '/worker',    desc: 'choose which worker model to use' },
     { name: '/models',    desc: 'manage saved model sets' },
+    { name: '/undo',      desc: 'rewind the file changes from the last turn' },
     { name: '/init',      desc: 'read or create AGENTS.md (references CLAUDE.md if present)' },
     { name: '/agents',    desc: 'show multi-agent manager/worker help' },
     { name: '/help',      desc: 'list available commands' }
@@ -29,6 +31,8 @@ module Commands
       app.open_worker_picker
     when '/models'
       app.open_models_picker
+    when '/undo'
+      app.handle_undo
     when '/init'
       app.handle_init
     when '/agents'

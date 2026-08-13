@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative '../checkpoints'
 require_relative '../diff'
 require_relative '../sandbox'
 require_relative 'helpers'
@@ -34,6 +35,9 @@ module Tools
         existed = File.exist?(abs)
         old = existed ? File.read(abs) : ''
         File.write(abs, new_content)
+        # Snapshot under the lock, so the recorded "before" is exactly what this
+        # write replaced even when another tool call touches the file next.
+        Checkpoints.record(path, before: existed ? old : nil, after: new_content)
         [old, existed]
       end
 

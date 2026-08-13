@@ -23,6 +23,8 @@ shell commands on your behalf, confined to your project directory.
   fresh *worker* agents, running independent subtasks in parallel.
 - **Multi-provider.** Anthropic, OpenAI, OpenRouter, Google Gemini, Groq, Ollama,
   and OpenCode behind a single native tool-use loop.
+- **Rewindable.** Every file the agent writes is snapshotted per turn, so `/undo`
+  rolls a bad turn back off disk.
 - **Stateful.** Last provider/model, named model sets, and the per-command
   permission allowlist persist across sessions.
 
@@ -142,6 +144,34 @@ Worker activity is shown indented in the chat log. Type `/agents` for details.
 Results from `write_file` and `edit_file` render as unified diffs in the
 right-hand panel.
 
+## Undo
+
+Every `write_file` / `edit_file` records the file's previous contents into a
+checkpoint for the turn that made it. `/undo` rewinds the newest turn that
+touched files — restoring what it edited and deleting what it created — and
+reports the turn it rolled back:
+
+```
+you /undo
+Undid "make the retry backoff configurable" — 2 files rewound
+  restored lib/borgator/http.rb
+  removed  lib/borgator/backoff.rb (that turn created it)
+! kept README.md — changed after the agent wrote it
+```
+
+Repeat it to walk further back, one turn at a time (the last 20 are kept). The
+next prompt tells the model what was rolled back, so it re-reads those files
+instead of continuing from state that no longer exists.
+
+Two deliberate limits, both about not destroying work:
+
+- A file is rewound only while it still holds exactly what the agent wrote
+  (tracked by digest). Anything you, a formatter, or a shell command touched
+  since is reported as *kept*, never overwritten.
+- Checkpoints live in memory for the session only, and cover the file tools —
+  not files written by `run_command`. Restoring a snapshot from an earlier
+  session could clobber newer work, so they intentionally do not survive a quit.
+
 ## Slash commands
 
 | Command      | Action |
@@ -149,6 +179,7 @@ right-hand panel.
 | `/providers` | Switch provider and model |
 | `/worker`    | Set the provider and model workers use |
 | `/models`    | Manage saved model sets |
+| `/undo`      | Rewind the file changes from the last turn |
 | `/init`      | Read or create `AGENTS.md`, referencing `CLAUDE.md` if present |
 | `/help`      | List available commands |
 
@@ -183,6 +214,7 @@ lib/borgator/
   agents.rb             # multi-agent system prompts, tool set, depth/parallel caps
   tools.rb              # built-in tools + permission gating
   sandbox.rb            # write guard + macOS/Linux OS sandbox wrappers
+  checkpoints.rb        # per-turn file snapshots behind /undo
   commands.rb           # slash commands
   preferences.rb        # persisted provider/model/worker/model sets/allowlist
   settings.rb           # API-key storage

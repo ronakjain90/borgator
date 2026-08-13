@@ -3,6 +3,7 @@
 require 'bubbletea'
 require 'lipgloss'
 
+require_relative 'checkpoints'
 require_relative 'model'
 require_relative 'preferences'
 require_relative 'prompt_history'
@@ -27,6 +28,7 @@ end
 # Elm-architecture TUI: init / update / view.
 class AgentApp
   include Bubbletea::Model
+  include Commands::Undo
   include Commands::Worker
 
   SPINNER = %w[⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏].freeze
@@ -73,6 +75,8 @@ class AgentApp
     @pending_permission = nil
     @pending_init = false
     @init_assistant_text = nil
+    # Notes queued for the model (e.g. an /undo) and prepended to the next prompt.
+    @pending_notes = []
 
     # Start of the current turn; the chomp animation is sampled from it.
     @thinking_since = nil
@@ -436,6 +440,7 @@ class AgentApp
     start_thinking!
     @input = ''
     @cursor_pos = 0
+    Checkpoints.begin_turn('/init')
 
     # Build a prompt asking the LLM to summarize the project
     summary_prompt = <<~PROMPT
@@ -1563,12 +1568,14 @@ class AgentApp
     end
 
     @log << { kind: :user, text: text }
-    @messages << { 'role' => 'user', 'content' => text }
+    @messages << { 'role' => 'user', 'content' => prompt_with_notes(text) }
     @input = ''
     @cursor_pos = 0
     start_thinking!
     @diffs = []
     @diff_cursor = -1
+    # Everything this turn writes is snapshotted under this label for /undo.
+    Checkpoints.begin_turn(text)
 
     @worker_thread = Thread.new(@messages, @events) do |msgs, events|
       @provider.run_turn(msgs, events)

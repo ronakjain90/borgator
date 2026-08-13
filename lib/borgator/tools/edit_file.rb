@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative '../checkpoints'
 require_relative '../diff'
 require_relative '../sandbox'
 require_relative 'helpers'
@@ -65,6 +66,7 @@ module Tools
 
         updated = replace_all ? old.gsub(old_string, new_string) : old.sub(old_string, new_string)
         File.write(abs, updated)
+        Checkpoints.record(path, before: old, after: updated)
         [old, updated, n]
       end
 
