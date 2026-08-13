@@ -113,7 +113,9 @@ class OpenaiProvider
       end
 
       if (usage = Usage.from_openai(resp['usage']))
-        events << { kind: :usage, usage: usage }
+        # Tagged with the model that spent them: a worker may run elsewhere, and
+        # /cost prices each model separately.
+        events << { kind: :usage, usage: usage, provider: label, model: model_label }
       end
 
       choice = resp.dig('choices', 0)

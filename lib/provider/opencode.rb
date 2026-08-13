@@ -196,7 +196,7 @@ class OpencodeProvider
                 })
 
     if (usage = Usage.from_opencode(resp))
-      events << { kind: :usage, usage: usage }
+      events << { kind: :usage, usage: usage, provider: label, model: model_label }
     end
 
     Array(resp['parts']).each do |part|

@@ -29,6 +29,7 @@ end
 # Elm-architecture TUI: init / update / view.
 class AgentApp
   include Bubbletea::Model
+  include Commands::Cost
   include Commands::Resume
   include Commands::Undo
   include Commands::Worker
@@ -76,6 +77,8 @@ class AgentApp
 
     @cursor_pos = 0
     @usage = Usage.blank
+    # Per [provider, model] totals, so a manager and its workers are priced apart.
+    @usage_by_model = {}
     @context_tokens = 0
     @pending_permission = nil
     @pending_init = false
@@ -303,6 +306,7 @@ class AgentApp
         @messages = []
         reset_session!
         @usage = Usage.blank
+        @usage_by_model = {}
         @context_tokens = 0
       rescue Settings::MissingApiKeyError
         @mode = :enter_api_key
@@ -835,6 +839,7 @@ class AgentApp
       @messages = []
       reset_session!
       @usage = Usage.blank
+      @usage_by_model = {}
       @context_tokens = 0
       @picker_error = nil
       @log << ready_message
@@ -1282,6 +1287,10 @@ class AgentApp
       end
 
     usage = Usage.format_context(display_context_tokens, context_window)
+    # Spend sits next to the context meter — the two numbers people watch.
+    if (spent = session_cost_label)
+      usage = "#{usage}  #{spent}"
+    end
     hint =
       if @diffs.any?
         "#{@composer_key.render('[ ]')} #{@composer_dim.render('diffs')}  " \
@@ -1654,7 +1663,7 @@ class AgentApp
         @thinking = false
         persist_session
       when :usage
-        Usage.add!(@usage, ev[:usage])
+        record_usage(ev)
         # Latest prompt size ≈ current context fill for the meter.
         @context_tokens = ev[:usage][:input].to_i if ev[:usage]
       when :permission_request

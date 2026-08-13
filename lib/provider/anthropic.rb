@@ -92,7 +92,9 @@ class AnthropicProvider
       end
 
       if (usage = Usage.from_anthropic(resp['usage']))
-        events << { kind: :usage, usage: usage }
+        # Tagged with the model that spent them: a worker may run elsewhere, and
+        # /cost prices each model separately.
+        events << { kind: :usage, usage: usage, provider: label, model: model_label }
       end
 
       tool_uses = []
