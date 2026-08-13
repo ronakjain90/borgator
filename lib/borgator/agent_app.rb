@@ -30,6 +30,7 @@ end
 class AgentApp
   include Bubbletea::Model
   include Commands::Cost
+  include Commands::Plan
   include Commands::Resume
   include Commands::Undo
   include Commands::Worker
@@ -1271,7 +1272,8 @@ class AgentApp
       model = @composer_fg.render(@provider.model_label.to_s)
       provider = @composer_dim_bg.render(" #{@provider.label}")
       worker = (w = worker_summary) ? @composer_dim_bg.render("  ⌁ #{w}") : ''
-      "#{mode}#{sep}#{model}#{provider}#{worker}"
+      plan = (badge = plan_mode_badge) ? @composer_accent.render(badge) : ''
+      "#{mode}#{sep}#{model}#{provider}#{worker}#{plan}"
     else
       "#{mode}#{sep}#{@composer_dim_bg.render('no model — /providers')}"
     end

@@ -2,6 +2,7 @@
 
 require 'open3'
 
+require_relative '../plan_mode'
 require_relative '../preferences'
 require_relative '../sandbox'
 require_relative 'helpers'
@@ -29,7 +30,13 @@ module Tools
     end
 
     # Run under OS sandbox. Routes through Tools.execute_command so tests can stub it.
+    # Plan mode is checked ahead of everything else, including skip_permission —
+    # run_tests bypasses the prompt, but it must not bypass plan mode.
     def run(cmd, skip_permission: false)
+      if (planned = PlanMode.command_refusal(cmd))
+        return ["plan mode: refused #{cmd}", planned]
+      end
+
       argv, refusal = Sandbox.wrap(cmd)
       return ["blocked (no sandbox): #{cmd}", refusal] if argv.nil?
 

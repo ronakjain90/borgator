@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'commands/cost'
+require_relative 'commands/plan'
 require_relative 'commands/resume'
 require_relative 'commands/undo'
 require_relative 'commands/worker'
@@ -11,6 +12,7 @@ module Commands
     { name: '/providers', desc: 'switch provider and model' },
     { name: '/worker',    desc: 'choose which worker model to use' },
     { name: '/models',    desc: 'manage saved model sets' },
+    { name: '/plan',      desc: 'toggle read-only plan mode (investigate, change nothing)' },
     { name: '/cost',      desc: 'show token usage and estimated spend for this session' },
     { name: '/resume',    desc: "reopen one of this project's saved conversations" },
     { name: '/undo',      desc: 'rewind the file changes from the last turn' },
@@ -27,8 +29,10 @@ module Commands
     ALL.select { |cmd| cmd[:name].start_with?(prefix) }
   end
 
-  def run(name, app, _arg = nil)
+  def run(name, app, arg = nil)
     case name
+    when '/plan'
+      app.handle_plan(arg)
     when '/providers'
       app.open_providers_picker
     when '/worker'

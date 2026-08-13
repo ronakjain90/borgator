@@ -16,6 +16,7 @@ Key features:
 - **Provider auto-config**: remembers your last provider/model in `~/.config/borgator/preferences.json`, saves named "model sets" switchable via `/models`, and lets workers run on a different (e.g. cheaper) model.
 - **Shell safety**: destructive commands prompt for permission (`y`/`a`/`p`/`n`); read-only `git` commands are auto-allowed. Persist command prefixes to skip future prompts.
   - `--yolo` skips all permission prompts.
+- **Plan mode**: `/plan` makes the session read-only (`PlanMode`), enforced three times over — the writing tools are withheld from `Agents.tools_for`, `Tools.call` refuses them regardless, and `RunCommand.run` allows only the built-in read-only prefixes (checked before `skip_permission`, so `run_tests` can't slip through). Any new mutating tool must be added to `PlanMode::MUTATING_TOOLS`.
 - **Cost**: usage events carry the provider+model that produced them, so `/cost` prices a manager and its workers separately (`Pricing`). Rates are USD per million tokens with cache read/write derived at 0.1x/1.25x of input; unknown models report "rate unknown" rather than a guess, and `~/.borgator/pricing.json` adds or corrects any of them.
 - **Resume**: every completed turn is saved to `~/.borgator/sessions/<project>/<id>.json` (`Sessions`), and `/resume` reopens one. Sessions are scoped to the project directory *and* to the provider's `message_shape` (`:anthropic` / `:openai` / `:opencode`) — the wire formats are not interchangeable.
 - **Undo**: `write_file`/`edit_file` snapshot the prior contents into a per-turn checkpoint (`Checkpoints`), and `/undo` rewinds the newest turn that touched files. Session-scoped and in memory; files changed after the agent wrote them are reported, never overwritten.
@@ -38,6 +39,8 @@ lib/
     checkpoints.rb      # per-turn file snapshots behind /undo
     sessions.rb         # saved conversations behind /resume
     commands/cost.rb    # the /cost command + per-model usage tracking
+    commands/plan.rb    # the /plan command, mixed into AgentApp
+    plan_mode.rb        # read-only mode behind /plan
     pricing.rb          # per-model rates + spend estimates behind /cost
     preferences.rb     # persisted provider/model/worker/model sets/allowlist
     settings.rb         # API keys (~/.borgator/settings.json)

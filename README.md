@@ -146,6 +146,26 @@ Worker activity is shown indented in the chat log. Type `/agents` for details.
 Results from `write_file` and `edit_file` render as unified diffs in the
 right-hand panel.
 
+## Plan mode
+
+`/plan` puts the agent in read-only mode: it investigates and proposes, and
+changes nothing. Ask for the work as usual, read the plan, then `/plan` again
+to let it carry the plan out. The composer shows `◦ plan` while it's on, and
+`/plan on` / `/plan off` set it explicitly.
+
+Enforced in three places, deliberately:
+
+- `write_file` and `edit_file` are withheld from the model's tool list, so it
+  plans instead of trying.
+- `Tools.call` refuses them anyway — a model can name a tool it wasn't offered.
+- `run_command` runs only the built-in read-only prefixes (`git status`,
+  `git log`, …). A command *you* once approved permanently may still write, so
+  the persisted allowlist doesn't apply here — and `run_tests`, which skips the
+  permission prompt, doesn't skip this.
+
+Worker agents plan too: they get the same reduced tool set and the same
+instruction.
+
 ## Cost
 
 The status bar carries a running estimate next to the context meter, and
@@ -233,6 +253,7 @@ Two deliberate limits, both about not destroying work:
 | `/providers` | Switch provider and model |
 | `/worker`    | Set the provider and model workers use |
 | `/models`    | Manage saved model sets |
+| `/plan`      | Toggle read-only plan mode (investigate, change nothing) |
 | `/cost`      | Token usage and estimated spend for this session |
 | `/resume`    | Reopen one of this project's saved conversations |
 | `/undo`      | Rewind the file changes from the last turn |
@@ -275,6 +296,7 @@ lib/borgator/
   checkpoints.rb        # per-turn file snapshots behind /undo
   sessions.rb           # saved conversations behind /resume
   pricing.rb            # per-model rates + spend estimates behind /cost
+  plan_mode.rb          # read-only mode behind /plan
   commands.rb           # slash commands
   preferences.rb        # persisted provider/model/worker/model sets/allowlist
   settings.rb           # API-key storage

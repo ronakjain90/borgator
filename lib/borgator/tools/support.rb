@@ -76,10 +76,21 @@ module Tools
     end
 
     def auto_allowed?(cmd)
+      prefixed?(cmd, allowlist)
+    end
+
+    # Matches only the built-in read-only prefixes — not the user's persisted
+    # allowlist, which is about skipping prompts and may include commands that
+    # write. Plan mode asks a different question than permission does.
+    def read_only?(cmd)
+      prefixed?(cmd, DEFAULT_ALLOWED)
+    end
+
+    def prefixed?(cmd, prefixes)
       norm = cmd.to_s.strip
       return false if norm.empty? || norm.match?(SHELL_METACHARS)
 
-      allowlist.any? { |prefix| norm == prefix || norm.start_with?("#{prefix} ") }
+      prefixes.any? { |prefix| norm == prefix || norm.start_with?("#{prefix} ") }
     end
 
     def allowlist

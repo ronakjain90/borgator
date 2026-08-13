@@ -5,6 +5,7 @@ require 'open3'
 
 require_relative 'constants'
 require_relative 'diff'
+require_relative 'plan_mode'
 require_relative 'preferences'
 require_relative 'sandbox'
 require_relative 'tools/support'
@@ -67,6 +68,12 @@ module Tools
     def dispatch(name, input)
       input ||= {}
       name = 'run_command' if COMMAND_ALIASES.include?(name)
+      # Enforced here as well as by withholding the schema: a model can name a
+      # tool it was never offered.
+      if (planned = PlanMode.refusal(name))
+        return ["plan mode: refused #{name}", planned]
+      end
+
       handler = Registry[name]
       unless handler
         valid = definitions.map { |d| d[:name] }.join(', ')

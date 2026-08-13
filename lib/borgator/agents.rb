@@ -2,6 +2,7 @@
 
 require 'json'
 
+require_relative 'plan_mode'
 require_relative 'tools'
 
 # Manager -> worker multi-agent orchestration.
@@ -109,18 +110,21 @@ module Agents
   module_function
 
   # Base tools every agent gets, plus `delegate` while below the depth cap.
+  # Plan mode withholds the writing tools from workers as well as the manager.
   def tools_for(depth)
-    tools = Tools.definitions.dup
+    tools = PlanMode.filter_tools(Tools.definitions)
     tools << DELEGATE_TOOL if depth < MAX_DEPTH
     tools
   end
 
   # System prompt for a given depth. The manager (depth 0) additionally gets the
   # project's AGENTS.md appended, so session context travels with every turn.
+  # The plan-mode note goes to every agent, so a worker doesn't try to write.
   def system_for(depth)
-    return WORKER_SYSTEM unless depth.zero?
+    base = depth.zero? ? [MANAGER_SYSTEM, agents_context].compact.join("\n") : WORKER_SYSTEM
+    return base unless PlanMode.active?
 
-    [MANAGER_SYSTEM, agents_context].compact.join("\n")
+    "#{base}\n#{PlanMode::SYSTEM_NOTE}"
   end
 
   def step_limit_event(depth)
