@@ -146,6 +146,19 @@ Worker activity is shown indented in the chat log. Type `/agents` for details.
 Results from `write_file` and `edit_file` render as unified diffs in the
 right-hand panel.
 
+## Compaction
+
+Long sessions run out of context. The tool-use loop already replaces stale tool
+results with placeholders once the budget fills, but the conversation itself
+only grows — so past ~80% of the window the footer suggests `/compact`.
+
+`/compact` runs one toolless turn that writes a handover — the goal, what
+changed and in which files, what was learned about the codebase, what's
+verified versus assumed, and the next step — then makes that summary the
+conversation. The chat log above stays as it was; only what the model carries
+forward is condensed, and files on disk are untouched. `/compact keep the
+sandbox findings` adds your own instruction about what to preserve.
+
 ## Plan mode
 
 `/plan` puts the agent in read-only mode: it investigates and proposes, and
@@ -254,6 +267,7 @@ Two deliberate limits, both about not destroying work:
 | `/worker`    | Set the provider and model workers use |
 | `/models`    | Manage saved model sets |
 | `/plan`      | Toggle read-only plan mode (investigate, change nothing) |
+| `/compact`   | Replace the conversation with a summary to free up context |
 | `/cost`      | Token usage and estimated spend for this session |
 | `/resume`    | Reopen one of this project's saved conversations |
 | `/undo`      | Rewind the file changes from the last turn |

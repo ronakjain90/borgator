@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative 'commands/compact'
 require_relative 'commands/cost'
 require_relative 'commands/plan'
 require_relative 'commands/resume'
@@ -13,6 +14,7 @@ module Commands
     { name: '/worker',    desc: 'choose which worker model to use' },
     { name: '/models',    desc: 'manage saved model sets' },
     { name: '/plan',      desc: 'toggle read-only plan mode (investigate, change nothing)' },
+    { name: '/compact',   desc: 'replace the conversation with a summary to free up context' },
     { name: '/cost',      desc: 'show token usage and estimated spend for this session' },
     { name: '/resume',    desc: "reopen one of this project's saved conversations" },
     { name: '/undo',      desc: 'rewind the file changes from the last turn' },
@@ -33,6 +35,8 @@ module Commands
     case name
     when '/plan'
       app.handle_plan(arg)
+    when '/compact'
+      app.handle_compact(arg)
     when '/providers'
       app.open_providers_picker
     when '/worker'

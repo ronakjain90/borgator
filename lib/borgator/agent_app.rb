@@ -29,6 +29,7 @@ end
 # Elm-architecture TUI: init / update / view.
 class AgentApp
   include Bubbletea::Model
+  include Commands::Compact
   include Commands::Cost
   include Commands::Plan
   include Commands::Resume
@@ -84,6 +85,9 @@ class AgentApp
     @pending_permission = nil
     @pending_init = false
     @init_assistant_text = nil
+    @pending_compact = false
+    @compact_assistant_text = nil
+    @compact_hinted = false
     # Notes queued for the model (e.g. an /undo) and prepended to the next prompt.
     @pending_notes = []
 
@@ -1662,7 +1666,9 @@ class AgentApp
             @log << { kind: :tool_result, text: content }
           end
         end
+        apply_compaction(@compact_assistant_text) if @pending_compact
         @thinking = false
+        maybe_hint_compaction
         persist_session
       when :usage
         record_usage(ev)
@@ -1677,6 +1683,7 @@ class AgentApp
         if ev[:kind] == :assistant && @pending_init
           @init_assistant_text = ev[:text].to_s
         end
+        @compact_assistant_text = ev[:text].to_s if ev[:kind] == :assistant && @pending_compact
         if ev[:diff]
           @diffs << ev[:diff]
           @diff_cursor = @diffs.length - 1
